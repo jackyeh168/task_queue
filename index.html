@@ -3,21 +3,247 @@
 
 <head>
     <meta charset="UTF-8">
-    <title>Hello World!</title>
+    <title>Task Manager</title>
 </head>
+<link rel="stylesheet" href="resource/css/bootstrap.min.css">
+
+<!-- Insert this line above script imports  -->
+<script>if (typeof module === 'object') { window.module = module; module = undefined; }</script>
+
+<script src="resource/js/jquery-3.3.1.slim.min.js"></script>
+
+<!-- Insert this line after script imports -->
+<script>if (window.module) module = window.module;</script>
+
+
+<!-- <link rel="stylesheet" href="resource/css/bootstrap-grid.min.css"> -->
+<style>
+    .myContainer {
+        background-color: #ffffaa;
+        height: 600px;
+        text-align: center;
+    }
+
+    .mygreen {
+        background-color: rgb(204, 232, 207);
+        border-radius: 100px;
+        -webkit-border-radius: 100px;
+        -moz-border-radius: 100px;
+    }
+
+    .mybutton {
+        width: 100%;
+        background-color: #acd6ff;
+    }
+
+    .padding {
+        padding-top: 10px;
+    }
+
+    .history_text {
+        padding-top: 5px;
+        padding-bottom: 5px;
+        text-align: center;
+        background-color: rgb(204, 232, 207);
+
+        border-radius: 100px;
+        -webkit-border-radius: 100px;
+        -moz-border-radius: 100px;
+    }
+</style>
 
 <body>
-    <h1>Hello World!</h1>
-    <!-- All of the Node.js APIs are available in this renderer process. -->
-    We are using Node.js
-    <script>document.write(process.versions.node)</script>, Chromium
-    <script>document.write(process.versions.chrome)</script>, and Electron
-    <script>document.write(process.versions.electron)</script>.
+    <!-- Add Task Modal -->
+    <div class="modal fade" id="addModel" tabindex="-1" role="dialog" aria-labelledby="addModelLabel" aria-hidden="true">
+        <div class="modal-dialog" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="addModelLabel">Add New Task</h5>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <textarea name="task" id="task" cols="30" rows="10"></textarea>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+                    <button type="button" class="btn btn-primary" onclick="addQueue()" data-dismiss="modal">Save</button>
+                </div>
+            </div>
+        </div>
+    </div>
 
-    <script>
-        // You can also require other files to run in this process
-        require('./renderer.js')
-    </script>
+    <!-- History Modal -->
+    <div class="modal fade" id="historyModel" tabindex="-1" role="dialog" aria-labelledby="historyModelLabel" aria-hidden="true">
+        <div class="modal-dialog" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="historyModelLabel">History</h5>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <div class="modal-body" id="historyList"></div>
+            </div>
+        </div>
+    </div>
+
+    <div class="container myContainer">
+        <div class="row">
+            <div class="col-md-12 padding">
+                <button class="mygreen mybutton" data-toggle="modal" data-target="#historyModel" onclick="showHistory()">History</button>
+            </div>
+
+            <div class="col-md-12 padding">
+                <button class="mygreen mybutton" data-toggle="modal" data-target="#addModel">Add</button>
+            </div>
+        </div>
+
+        <hr>
+
+        <div class="row">
+            <div class="col-md-4"></div>
+            <div class="col-md-4">
+                <h3>Queue</h3>
+            </div>
+            <div class="col-md-4"></div>
+        </div>
+        <div id="queue"></div>
+    </div>
+
 </body>
+
+<script src="resource/js/bootstrap.min.js"></script>
+<!-- <script src="resource/js/bootstrap.bundle.min.js"></script> -->
+<script>
+    jQuery(document).ready(function () {
+        loadTask();
+    });
+
+    function loadTask() {
+        require('fs').readFile('task.txt', 'utf8', (err, data) => {
+            if (err) throw err;
+
+            data.split(require('os').EOL).forEach(text => {
+                if (isEmpty(text)) return;
+                let htmlstr = returnTaskTemplate(text);
+
+                jQuery('#queue').append(htmlstr);
+            });
+        });
+    }
+
+    function createQueueModel() {
+        $('#myModal').on('shown.bs.modal', function () {
+            $('#myInput').trigger('focus')
+        })
+    }
+
+    function addQueue() {
+        let text = jQuery('#task').val();
+        if (isEmpty(text)) return;
+
+        writeCurrentTaskToFile(text);
+
+        let htmlstr = returnTaskTemplate(text);
+
+        jQuery('#queue').append(htmlstr);
+        jQuery('#task').val('');
+    }
+
+    function isEmpty(text) {
+        return text === null || text === undefined || text === '';
+    }
+
+    function writeCurrentTaskToFile(task) {
+        let task_content = task + require('os').EOL;
+
+        require('fs').appendFile('task.txt', task_content, err => {
+            if (err) throw err;
+        });
+    }
+
+    function returnTaskTemplate(text) {
+        let uuid = guid();
+        return `<div class="row myqueue padding" id="${uuid}">,
+        <div class="col-md-6 mygreen">
+            <h1 id="${uuid + 'text'}">${text}</h1>
+        </div>
+        <div class="col-md-1">                    </div>
+        <div class="col-md-1 mygreen ">
+            <button class="mybutton" onclick=finishTask('${uuid}')>Finish</button>
+        </div>
+        <div class="col-md-1">                    </div>
+        <div class="col-md-1 mygreen">
+            <button class="mybutton" onclick=deleteTask('${uuid}')>Delete</button>
+        </div>
+        </div>`;
+    }
+
+    function guid() {
+        function s4() {
+            return Math.floor((1 + Math.random()) * 0x10000)
+                .toString(16)
+                .substring(1);
+        }
+        return s4() + s4() + '-' + s4() + '-' + s4() + '-' + s4() + '-' + s4() + s4() + s4();
+    }
+
+    function finishTask(task_id) {
+        let task_content = jQuery('#' + task_id + 'text').text() + require('os').EOL;
+
+        require('fs').appendFile('historytask.txt', task_content, err => {
+            if (err) throw err;
+        });
+
+        removeTaskFromFile(task_content);
+        jQuery("#" + task_id).remove();
+    }
+
+    function deleteTask(task_id) {
+        let task_content = jQuery('#' + task_id + 'text').text() + require('os').EOL;
+        removeTaskFromFile(task_content);
+        jQuery("#" + task_id).remove();
+    }
+
+    function removeTaskFromFile(task) {
+        const fs = require('fs')
+        fs.readFile('task.txt', 'utf8', (err, data) => {
+            if (err) throw err;
+
+            let re = new RegExp(task, "g");
+            let result = data.replace(re, '');
+
+            fs.writeFile('task.txt', result, 'utf8', err => {
+                if (err) throw err;
+            });
+        });
+    }
+
+    function showHistory() {
+        let list = getHistoryList();
+        let htmlstr = returnHistoryTask(list);
+        jQuery('#historyList').html(htmlstr);
+    }
+
+    function getHistoryList() {
+        return require('fs').readFileSync('historytask.txt', 'utf8').split(require('os').EOL);
+    }
+
+    function returnHistoryTask(task_list) {
+        let str = '';
+        task_list.forEach(el => {
+            if (isEmpty(el)) return;
+            
+            str += `<div class="col-md-12">
+                <h3 class="history_text">${el}</h3>
+            </div>`;
+        });
+
+        return '<div class="row">' + str + '</div>';
+    }
+
+</script>
 
 </html>
